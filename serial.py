@@ -14,6 +14,7 @@ def serial_find_g(p):
         sol.sort()
         if sol == check:
             all_vals.append(i)
+            return i
             
 
     return all_vals   
@@ -36,6 +37,10 @@ def serial_bs_gs(g, h, p):
 
     return None
 
-
+p = 1009
+h= 32
+g = serial_find_g(p)
+print(g)
+print(serial_bs_gs(g,h,p))
 
 
