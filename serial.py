@@ -1,4 +1,6 @@
 import math
+from itertools import count, islice
+
 # Find smallest generator g for given prime number
 def serial_find_g(p):
     check = list(range(1,p))
@@ -17,30 +19,24 @@ def serial_find_g(p):
             return i
             
 
-    return all_vals   
+    return all_vals 
+
+
 
 # Solve Baby-Step, Giant-Step algorithm with given generator g, remainder h, and prime p
 def serial_bs_gs(g, h, p):
     n = math.ceil(math.sqrt(p-1))
     bs = {}
     for i in range(n):
-        #bs[g**(i)%p] = i
         bs[pow(g,i,p)] = i
 
-    #temp = g**(n*(p-2)) % p
     temp = pow(g, n*(p-2), p)
     for j in range(n):
-        #gs = (h * temp**j % p) % p
         gs = h * pow(temp,j,p) % p
         if gs in bs:
             return j * n + bs[gs]
 
     return None
 
-p = 1009
-h= 32
-g = serial_find_g(p)
-print(g)
-print(serial_bs_gs(g,h,p))
 
 
