@@ -17,13 +17,21 @@ def bs_kernel(d_g, d_p, bs_idx, bs_tab):
       bs_tab[i] = d_pow(d_g, i, p)
 
 @cuda.jit
-def gs_kernel(temp, h, p, bs_idx, bs_tab, d_gs, sols):
+def gs_kernel(temp, h, p, d_gs, bs_idx, bs_tab, sol):
     j = cuda.grid(1)
     n = bs_idx.shape[0]
 
+
     if j < n:
       d_gs[j] = h * d_pow(temp,j,p) % p
+      for a in range(n):
+        if d_gs[j] == bs_tab[a]:
+          sol[0] = j*n + a
+          return
+
       
+
+
 
 
 def parallel_bs_gs(g, h, p):
@@ -41,7 +49,8 @@ def parallel_bs_gs(g, h, p):
   sol = cuda.device_array(1, dtype=np.int64)
   d_gs = cuda.device_array(n, dtype=np.int64)
 
-  gs_kernel[gridDims, blockDims](temp, h, p, bs_idx, bs_tab, d_gs, sol)
 
-  return  sol.copy_to_host(), d_gs.copy_to_host(), bs_tab.copy_to_host(), bs_idx.copy_to_host()
+  gs_kernel[gridDims, blockDims](temp, h, p, d_gs, bs_idx, bs_tab, sol)
+
+  return  sol.copy_to_host()
     

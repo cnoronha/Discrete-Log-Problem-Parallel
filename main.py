@@ -8,10 +8,10 @@ from serial import *
 
 start = time()
 
-p = 2**15-55
-h = 8384
-g = 5
-
+p = 1009
+h = 75
+g = serial_find_g(p)
+print(g)
 serial_solu = serial_bs_gs(g, h, p)
 
 serial_elapsed = time() - start
