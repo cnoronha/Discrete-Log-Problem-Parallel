@@ -10,7 +10,8 @@ def serial_find_g(p):
     p: prime number
     
     Returns:
-    all_vals: list of values < p to test discrete log
+    all_vals: list of generator g values for the given prime p
+    i: smallest generator
     """
     check = list(range(1,p))
     all_vals = []
@@ -44,7 +45,7 @@ def serial_bs_gs(g, h, p):
     p: prime number
     
     Returns:
-    dictionary of values - solution to the baby-step, giant-step algorithm
+    Solution to the baby-step, giant-step algorithm
     """
 
     n = math.ceil(math.sqrt(p-1))
@@ -58,7 +59,7 @@ def serial_bs_gs(g, h, p):
         if gs in bs:
             return j * n + bs[gs]
 
-    return None
+    return None # if g is not a generator for prime p
 
 
 
