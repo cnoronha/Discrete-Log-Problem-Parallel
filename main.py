@@ -8,7 +8,7 @@ from serial import *
 
 start = time()
 
-p = 1009
+p = 1019
 h = 75
 g = serial_find_g(p)
 print(g)

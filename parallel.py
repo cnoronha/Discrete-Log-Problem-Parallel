@@ -2,31 +2,46 @@ import math
 import numpy as np
 from numba import cuda, jit, int64
 
+def g_split(g):
+  lim = 2**64-1
+  for i in range(64):
+    if g**i > lim:
+      split = i-1
+      return split
+  return i
 
 @cuda.jit(device = True)
 def d_pow(a,b,m):
   return (a**b) % m
 
+@cuda.jit(device = True)
+def break_pow(g, i, p, n, split):
+  mult = g**split%p
+  section = math.ceil(i/split)
+  power = i-split*(section-1)
+  if i <= split:
+    return (g**i%p)
+  else:
+    return ((g**power%p) * (mult*(section-1)))%p
+
 @cuda.jit
-def bs_kernel(d_g, d_p, bs_idx, bs_tab):
+def bs_kernel(g, p, bs_tab, n, split):
     i = cuda.grid(1)
-    n = bs_idx.shape[0]
-
+    
     if i < n:
-      bs_idx[i] = i
-      bs_tab[i] = d_pow(d_g, i, p)
+      bs_tab[i] = break_pow(g,i,p,n,split)
+
 
 @cuda.jit
-def gs_kernel(temp, h, p, d_gs, bs_idx, bs_tab, sol):
+def gs_kernel(temp, n, h, p, d_gs,bs_tab, sol, split):
     j = cuda.grid(1)
-    n = bs_idx.shape[0]
-
 
     if j < n:
-      d_gs[j] = h * d_pow(temp,j,p) % p
+      mid_val = break_pow(temp,j,p,n,split)
+      d_gs[j] = h * mid_val % p
       for a in range(n):
         if d_gs[j] == bs_tab[a]:
-          sol[0] = j*n + a
+          sol[a] = j*n + a
           return
 
       
@@ -36,21 +51,23 @@ def gs_kernel(temp, h, p, d_gs, bs_idx, bs_tab, sol):
 
 def parallel_bs_gs(g, h, p):
   n = math.ceil(math.sqrt(p-1))
+  split_g = g_split(g)
 
-  bs_idx = cuda.device_array(n, dtype=np.int64)
-  bs_tab = cuda.device_array(n, dtype=np.int64)
+  bs_idx = cuda.device_array(n)
+  bs_tab = cuda.device_array(n)
 
   blockDims = TPB
   gridDims = (n+TPB-1)//TPB
 
-  bs_kernel[gridDims, blockDims](g, p, bs_idx, bs_tab)
+  bs_kernel[gridDims, blockDims](g, p, bs_tab, n, split_g)
 
   temp = pow(g, n*(p-2), p)
-  sol = cuda.device_array(1, dtype=np.int64)
-  d_gs = cuda.device_array(n, dtype=np.int64)
+  split_temp = g_split(temp)
+  sol = cuda.device_array(1)
+  d_gs = cuda.device_array(n)
 
 
-  gs_kernel[gridDims, blockDims](temp, h, p, d_gs, bs_idx, bs_tab, sol)
+  gs_kernel[gridDims, blockDims](temp, n, h, p, d_gs, bs_tab, sol, split_temp)
 
-  return  sol.copy_to_host()
+  return  sol.copy_to_host(), bs_tab.copy_to_host(), d_gs.copy_to_host()
     
