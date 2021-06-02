@@ -1,5 +1,6 @@
 from time import time
 from serial import *
+from parallel import *
 
 # use serial_find_g for 15 bit primes or smaller (ie. p = 2**15-19, gives g = 2). this increases time
 # for larger primes, try below
@@ -10,9 +11,14 @@ start = time()
 
 p = 1019
 h = 75
-g = serial_find_g(p)
-print(g)
+g = 11
+# g = serial_find_g(p)
+# print(g)
 serial_solu = serial_bs_gs(g, h, p)
+parallel_solu = parallel_bs_gs(g,h,p)
+
+print(parallel_solu)
+print(serial_solu)
 
 serial_elapsed = time() - start
 print('serial time elapsed: ', serial_elapsed*1000, 'ms')
