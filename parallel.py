@@ -15,34 +15,44 @@ def d_pow(a,b,m):
   return (a**b) % m
 
 @cuda.jit(device = True)
-def break_pow(g, i, p, n, split):
+def break_pow(g, i, p, split):
   mult = g**split%p
   section = math.ceil(i/split)
   power = i-split*(section-1)
-  if i <= split:
+  if i < split:
     return (g**i%p)
   else:
-    return ((g**power%p) * (mult*(section-1)))%p
+    count = 1
+    ans = (g**power%p)
+    while count<section:
+        ans = (ans * mult) %p
+        count +=1
+    return ans
+    
+
+
+
 
 @cuda.jit
 def bs_kernel(g, p, bs_tab, n, split):
     i = cuda.grid(1)
-    
+
     if i < n:
-      bs_tab[i] = break_pow(g,i,p,n,split)
+      bs_tab[i] = break_pow(g, i, p, split-1)
 
 
 @cuda.jit
-def gs_kernel(temp, n, h, p, d_gs,bs_tab, sol, split):
+def gs_kernel(temp, n, h, p, d_gs,bs_tab, sol, split, mid_val):
     j = cuda.grid(1)
 
     if j < n:
-      mid_val = break_pow(temp,j,p,n,split)
-      d_gs[j] = h * mid_val % p
-      for a in range(n):
-        if d_gs[j] == bs_tab[a]:
-          sol[a] = j*n + a
-          return
+      mid_val[j] = break_pow(temp, j, p, split-1)
+
+      d_gs[j] = h * mid_val[j] % p
+    for a in range(n):
+      if d_gs[j] == round(bs_tab[a]):
+        sol[0] = j*n + a
+        return
 
       
 
@@ -53,8 +63,7 @@ def parallel_bs_gs(g, h, p):
   n = math.ceil(math.sqrt(p-1))
   split_g = g_split(g)
 
-  bs_idx = cuda.device_array(n)
-  bs_tab = cuda.device_array(n)
+  bs_tab = cuda.device_array(n,dtype=np.int)
 
   blockDims = TPB
   gridDims = (n+TPB-1)//TPB
@@ -63,11 +72,12 @@ def parallel_bs_gs(g, h, p):
 
   temp = pow(g, n*(p-2), p)
   split_temp = g_split(temp)
-  sol = cuda.device_array(1)
+  sol = cuda.device_array(1, dtype=np.int)
+  mid_val = cuda.device_array(n, dtype=np.int)
   d_gs = cuda.device_array(n)
 
 
-  gs_kernel[gridDims, blockDims](temp, n, h, p, d_gs, bs_tab, sol, split_temp)
+  gs_kernel[gridDims, blockDims](temp, n, h, p, d_gs, bs_tab, sol, split_temp, mid_val)
 
   return  sol.copy_to_host(), bs_tab.copy_to_host(), d_gs.copy_to_host()
     
