@@ -13,10 +13,6 @@ def g_split(g):
   return i
 
 @cuda.jit(device = True)
-def d_pow(a,b,m):
-  return (a**b) % m
-
-@cuda.jit(device = True)
 def break_pow(g, i, p, split):
   mult = g**split%p
   section = np.uint(math.ceil(i/split))
