@@ -67,8 +67,14 @@ def parallel_bs_gs(g, h, p):
 
   blockDims = TPB
   gridDims = (n+TPB-1)//TPB
-
+    
+  start = cuda.event()
+  end = cuda.event()
+  start.record()
   bs_kernel[gridDims, blockDims](g, p, bs_tab, n, split_g)
+  end.record()
+  end.synchronize()
+  parallel_elapsed_bs = cuda.event_elapsed_time(start,end)
 
   temp = pow(g, n*(p-2), p)
   split_temp = g_split(temp)
@@ -76,8 +82,13 @@ def parallel_bs_gs(g, h, p):
   mid_val = cuda.device_array(n, dtype=np.uint)
   d_gs = cuda.device_array(n)
 
-
+  start1 = cuda.event()
+  end1 = cuda.event()
+  start1.record()
   gs_kernel[gridDims, blockDims](temp, n, h, p, d_gs, bs_tab, sol, split_temp, mid_val)
-
-  return  sol.copy_to_host(), bs_tab.copy_to_host(), d_gs.copy_to_host()
+  end1.record()
+  end1.synchronize()
+  parallel_elapsed_gs = cuda.event_elapsed_time(start1,end1)
+  
+  return  sol.copy_to_host(), bs_tab.copy_to_host(), d_gs.copy_to_host(), parallel_elapsed_bs, parallel_elapsed_gs
     

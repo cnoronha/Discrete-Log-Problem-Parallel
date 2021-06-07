@@ -24,16 +24,14 @@ start = time()
 serial_solu = serial_bs_gs(g, h, p)
 serial_elapsed = time() - start
 
-start = time()
-parallel_solu, pbs, pgs = parallel_bs_gs(g,h,p)
-parallel_elapsed = time() - start
+parallel_solu, pbs, pgs, parallel_elapsed_bs, parallel_elapsed_gs = parallel_bs_gs(g,h,p)
 
 print(serial_solu)
 print(parallel_solu)
 
 
 print('serial time elapsed: ', serial_elapsed*1000, 'ms')
-print('parallel time elapsed: ', parallel_elapsed*1000, 'ms')
+print('parallel time elapsed: ', parallel_elapsed_bs + parallel_elapsed_gs, 'ms')
 # print('given: ', h, '=', g, '^x mod', p, ', x =', serial_solu)
 
 print('check serial: ',pow(g,serial_solu,p), ' = ', h)
